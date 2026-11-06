@@ -1,0 +1,81 @@
+name: AgentShield CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      AGENTSHIELD_SECRET_KEY: ci-only-secret-key-with-at-least-32-bytes
+      DATABASE_URL: "sqlite:///:memory:"
+      PYTHONPATH: backend
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - run: python -m pytest -v
+      - run: python backend/benchmarks/run_benchmark.py
+      - run: python -m compileall -q backend sandbox
+
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  lifecycle-e2e:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: python -m pip install -r ../backend/requirements-dev.txt
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  deployment:
+    runs-on: ubuntu-latest
+    env:
+      AGENTSHIELD_SECRET_KEY: ci-only-secret-key-with-at-least-32-bytes
+      AGENTSHIELD_SANDBOX_TOKEN: ci-only-sandbox-token-with-at-least-32-bytes
+      AGENTSHIELD_CORS_ORIGINS: http://localhost:5173
+      POSTGRES_DB: agentshield
+      POSTGRES_USER: agentshield
+      POSTGRES_PASSWORD: "0123456789abcdef0123456789abcdef"
+      REDIS_PASSWORD: "abcdef0123456789abcdef0123456789"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build deployment images
+        run: docker compose build

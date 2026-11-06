@@ -1,0 +1,128 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [app]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [app]
+
+  sandbox:
+    restart: unless-stopped
+    build:
+      context: ./sandbox
+    environment:
+      AGENTSHIELD_SANDBOX_TOKEN: ${AGENTSHIELD_SANDBOX_TOKEN:?Set AGENTSHIELD_SANDBOX_TOKEN}
+    read_only: true
+    tmpfs: ["/tmp:size=8m,noexec,nosuid"]
+    user: "65534:65534"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 32
+    mem_limit: 64m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+    networks: [sandbox_internal]
+
+  api:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      AGENTSHIELD_ENVIRONMENT: production
+      AGENTSHIELD_DATABASE_MODE: postgres
+      AGENTSHIELD_SECRET_KEY: ${AGENTSHIELD_SECRET_KEY:?Set AGENTSHIELD_SECRET_KEY}
+      AGENTSHIELD_JWT_ISSUER: ${AGENTSHIELD_JWT_ISSUER:-agentshield}
+      AGENTSHIELD_JWT_AUDIENCE: ${AGENTSHIELD_JWT_AUDIENCE:-agentshield-api}
+      AGENTSHIELD_REVIEWER_USERNAME: ${AGENTSHIELD_REVIEWER_USERNAME:-}
+      AGENTSHIELD_REVIEWER_PASSWORD: ${AGENTSHIELD_REVIEWER_PASSWORD:-}
+      AGENTSHIELD_AGENT_USERNAME: ${AGENTSHIELD_AGENT_USERNAME:-}
+      AGENTSHIELD_AGENT_PASSWORD: ${AGENTSHIELD_AGENT_PASSWORD:-}
+      AGENTSHIELD_SANDBOX_URL: http://sandbox:8080
+      AGENTSHIELD_SANDBOX_TOKEN: ${AGENTSHIELD_SANDBOX_TOKEN:?Set AGENTSHIELD_SANDBOX_TOKEN}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/0
+      AGENTSHIELD_CORS_ORIGINS: ${AGENTSHIELD_CORS_ORIGINS:?Set AGENTSHIELD_CORS_ORIGINS}
+    ports:
+      - "127.0.0.1:8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      sandbox: {condition: service_healthy}
+    networks: [app, sandbox_internal]
+
+  dashboard:
+    restart: unless-stopped
+    build:
+      context: ./dashboard
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "127.0.0.1:5173:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [frontend]
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app:
+  sandbox_internal:
+    internal: true
+  frontend:
+    internal: true

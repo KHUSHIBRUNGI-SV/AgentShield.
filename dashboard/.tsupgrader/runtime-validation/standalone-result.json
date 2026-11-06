@@ -1,0 +1,27 @@
+{
+  "planHash": "8d51f14336e16913107affe844e738a776efaee2f924e6cd588d2a856fcc53d0",
+  "phase": "standalone",
+  "recordedAtUtc": "2026-11-06T16:30:21.9564720Z",
+  "retryCount": 0,
+  "resetBaseline": false,
+  "complete": true,
+  "result": {
+    "setupSucceeded": false,
+    "setupDurationMs": 29879,
+    "setupFailureOutput": "setup step 0 \u0027npm\u0027 failed (exit=-4048, timedOut=False)\r\nnpm error code EPERM\r\nnpm error syscall unlink\r\nnpm error path C:\\Users\\khush\\OneDrive\\Documents\\agentsheild\\dashboard\\node_modules\\@esbuild\\.win32-x64-BLAUS9Mu\\esbuild.exe\r\nnpm error errno -4048\r\nnpm error [Error: EPERM: operation not permitted, unlink \u0027C:\\Users\\khush\\OneDrive\\Documents\\agentsheild\\dashboard\\node_modules\\@esbuild\\.win32-x64-BLAUS9Mu\\esbuild.exe\u0027] {\r\nnpm error   errno: -4048,\r\nnpm error   code: \u0027EPERM\u0027,\r\nnpm error   syscall: \u0027unlink\u0027,\r\nnpm error   path: \u0027C:\\\\Users\\\\khush\\\\OneDrive\\\\Documents\\\\agentsheild\\\\dashboard\\\\node_modules\\\\@esbuild\\\\.win32-x64-BLAUS9Mu\\\\esbuild.exe\u0027\r\nnpm error }\r\nnpm error\r\nnpm error The operation was rejected by your operating system.\r\nnpm error It\u0027s possible that the file was already in use (by a text editor or antivirus), or that you lack permissions to access it.\r\nnpm error\r\nnpm error If you believe this might be a permissions issue, please double-check the permissions of the file and its containing directories, or try running the command again as root/Administrator.\r\nnpm error A complete log of this run can be found in: C:\\Users\\khush\\AppData\\Local\\npm-cache\\_logs\\2026-11-06T16_29_53_975Z-debug-0.log\r\n",
+    "assertions": [],
+    "executions": [
+      {
+        "source": "setup[0]",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "ci"
+        ],
+        "cwd": "C:\\Users\\khush\\OneDrive\\Documents\\agentsheild\\dashboard",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      }
+    ]
+  }
+}

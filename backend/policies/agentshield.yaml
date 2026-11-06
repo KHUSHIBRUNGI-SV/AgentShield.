@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "default_decision": "BLOCK",
+  "required_subject_roles": ["agent"],
+  "rules": [
+    {
+      "id": "support-customer-read",
+      "match": {
+        "agent": "customer_support_bot",
+        "tool": "customer.lookup",
+        "resource": "customer",
+        "action": "read",
+        "environment": ["*"],
+        "max_records": 1000
+      },
+      "decision": "ALLOW",
+      "reason": "Customer support read is permitted",
+      "rate_limit": 20
+    },
+    {
+      "id": "support-customer-update",
+      "match": {
+        "agent": "customer_support_bot",
+        "tool": "customer.update",
+        "resource": "customer",
+        "action": "update",
+        "environment": ["development", "staging"]
+      },
+      "decision": "ALLOW",
+      "reason": "Customer updates are limited to non-production environments",
+      "rate_limit": 10
+    },
+    {
+      "id": "support-customer-export",
+      "match": {
+        "agent": "customer_support_bot",
+        "tool": "customer.export",
+        "resource": "customer",
+        "action": "export",
+        "environment": ["*"],
+        "max_records": 1000
+      },
+      "decision": "HUMAN_APPROVAL",
+      "reason": "Customer export requires reviewer approval",
+      "rate_limit": 5
+    },
+    {
+      "id": "admin-customer-read",
+      "match": {
+        "agent": "admin_bot",
+        "tool": "customer.lookup",
+        "resource": "customer",
+        "action": "read",
+        "environment": ["*"],
+        "max_records": 1000
+      },
+      "decision": "ALLOW",
+      "reason": "Administrative read is permitted",
+      "rate_limit": 50
+    },
+    {
+      "id": "admin-customer-update",
+      "match": {
+        "agent": "admin_bot",
+        "tool": "customer.update",
+        "resource": "customer",
+        "action": "update",
+        "environment": ["*"]
+      },
+      "decision": "ALLOW",
+      "reason": "Administrative update is permitted",
+      "rate_limit": 30
+    },
+    {
+      "id": "admin-customer-delete",
+      "match": {
+        "agent": "admin_bot",
+        "tool": "customer.delete",
+        "resource": "customer",
+        "action": "delete",
+        "environment": ["development"]
+      },
+      "decision": "ALLOW",
+      "reason": "Administrative deletion is restricted to development",
+      "rate_limit": 5
+    },
+    {
+      "id": "admin-customer-export",
+      "match": {
+        "agent": "admin_bot",
+        "tool": "customer.export",
+        "resource": "customer",
+        "action": "export",
+        "environment": ["*"],
+        "max_records": 10000
+      },
+      "decision": "HUMAN_APPROVAL",
+      "reason": "Administrative customer export requires reviewer approval",
+      "rate_limit": 10
+    },
+    {
+      "id": "sandbox-preview",
+      "match": {
+        "agent": "*",
+        "tool": "demo.preview",
+        "resource": "demo",
+        "action": "preview",
+        "environment": ["development", "staging"]
+      },
+      "decision": "SANDBOX",
+      "reason": "Preview actions require isolated sandbox execution",
+      "rate_limit": 10
+    }
+  ]
+}

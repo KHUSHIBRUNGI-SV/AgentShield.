@@ -1,0 +1,10 @@
+ALTER TABLE audit_logs
+    ADD COLUMN IF NOT EXISTS event_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS previous_hash VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS event_hash VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS event_type VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS severity VARCHAR(16),
+    ADD COLUMN IF NOT EXISTS evidence TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_audit_event_id
+    ON audit_logs (event_id);
